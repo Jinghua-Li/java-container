@@ -10,6 +10,11 @@ public class ContainerTest {
 
     }
 
+    static class ComponentImpl implements Component {
+        public ComponentImpl() {
+        }
+    }
+
     @Nested
     class ComponentConstruction {
 
@@ -25,6 +30,18 @@ public class ContainerTest {
 
         @Nested
         public class ConstructorInjection {
+
+            @Test
+            void should_bind_type_to_a_class_with_default_construction() {
+                Context context = new Context();
+
+                context.bind(Component.class, ComponentImpl.class);
+
+                final Component instance = context.get(Component.class);
+
+                Assert.assertNotNull(instance);
+                Assert.assertTrue(instance instanceof ComponentImpl);
+            }
 
         }
 
