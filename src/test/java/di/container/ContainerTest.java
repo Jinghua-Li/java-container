@@ -1,5 +1,7 @@
 package di.container;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import jakarta.inject.Inject;
 import org.junit.Assert;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,6 +65,11 @@ public class ContainerTest {
                 Assert.assertNotNull(dependency);
                 Assert.assertSame("test transitive dependency", ((TransitiveDependency) dependency).getDependency());
             }
+
+            @Test
+            void should_throw_exception_when_bind_type_a_class_with_multi_constructors() {
+                assertThrows(IllegalCopmonentException.class, () -> context.bind(Component.class, ComponentWithMultiConstructors.class));
+            }
         }
 
         @Nested
@@ -123,5 +130,15 @@ class TransitiveDependency implements Dependency {
 
     public String getDependency() {
         return dependency;
+    }
+}
+
+class ComponentWithMultiConstructors implements Component {
+    @Inject
+    public ComponentWithMultiConstructors(String str, Double price) {
+    }
+
+    @Inject
+    public ComponentWithMultiConstructors(String str) {
     }
 }

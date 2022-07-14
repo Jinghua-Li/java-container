@@ -17,6 +17,11 @@ public class Context {
     }
 
     public <T, K extends T> void bind(Class<T> componentClass, Class<K> instance) {
+        final long size = stream(instance.getConstructors())
+                .filter(c -> c.isAnnotationPresent(Inject.class)).count();
+        if (size > 1) {
+            throw new IllegalCopmonentException();
+        }
         container.put(componentClass, () -> {
             try {
                 final Constructor<K> constructor = getConstructor(instance);
