@@ -70,6 +70,11 @@ public class ContainerTest {
             void should_throw_exception_when_bind_type_a_class_with_multi_constructors() {
                 assertThrows(IllegalCopmonentException.class, () -> context.bind(Component.class, ComponentWithMultiConstructors.class));
             }
+
+            @Test
+            void should_throw_exception_when_bind_type_a_class_with_no_default_constructors() {
+                assertThrows(IllegalCopmonentException.class, () -> context.bind(Component.class, ComponentWithNoDefaultConstructors.class));
+            }
         }
 
         @Nested
@@ -140,5 +145,10 @@ class ComponentWithMultiConstructors implements Component {
 
     @Inject
     public ComponentWithMultiConstructors(String str) {
+    }
+}
+
+class ComponentWithNoDefaultConstructors implements Component {
+    public ComponentWithNoDefaultConstructors(String str) {
     }
 }

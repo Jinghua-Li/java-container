@@ -22,6 +22,10 @@ public class Context {
         if (size > 1) {
             throw new IllegalCopmonentException();
         }
+        if (size == 0 && stream(instance.getConstructors()).filter(c -> c.getParameters().length == 0).findFirst()
+                .map(c -> false).orElse(true)) {
+            throw new IllegalCopmonentException();
+        }
         container.put(componentClass, () -> {
             try {
                 final Constructor<K> constructor = getConstructor(instance);
