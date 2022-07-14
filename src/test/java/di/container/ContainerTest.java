@@ -48,7 +48,20 @@ public class ContainerTest {
 
                 final Component instance = context.get(Component.class);
                 Assert.assertNotNull(instance);
-                Assert.assertSame(dependency, ((ComponentWithDependency)instance).getDependency());
+                Assert.assertSame(dependency, ((ComponentWithDependency) instance).getDependency());
+            }
+
+            @Test
+            void should_bind_type_to_a_class_with_transitive_dependencies() {
+                context.bind(Component.class, ComponentWithDependency.class);
+                context.bind(Dependency.class, TransitiveDependency.class);
+                context.bind(String.class, "test transitive dependency");
+
+                final Component instance = context.get(Component.class);
+                Assert.assertNotNull(instance);
+                final Dependency dependency = ((ComponentWithDependency) instance).getDependency();
+                Assert.assertNotNull(dependency);
+                Assert.assertSame("test transitive dependency", ((TransitiveDependency) dependency).getDependency());
             }
         }
 
@@ -87,7 +100,7 @@ class ComponentImpl implements Component {
     }
 }
 
-class ComponentWithDependency implements  Component {
+class ComponentWithDependency implements Component {
     private Dependency dependency;
 
     @Inject
@@ -96,6 +109,19 @@ class ComponentWithDependency implements  Component {
     }
 
     public Dependency getDependency() {
+        return dependency;
+    }
+}
+
+class TransitiveDependency implements Dependency {
+    private String dependency;
+
+    @Inject
+    public TransitiveDependency(String dependency) {
+        this.dependency = dependency;
+    }
+
+    public String getDependency() {
         return dependency;
     }
 }
