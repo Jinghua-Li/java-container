@@ -1,5 +1,8 @@
 package di.container;
 
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import jakarta.inject.Inject;
@@ -25,7 +28,13 @@ public class ContainerTest {
             };
             context.bind(Component.class, instance);
 
-            Assert.assertSame(instance, context.get(Component.class));
+            Assert.assertSame(instance, context.get(Component.class).get());
+        }
+
+        @Test
+        void should_return_empty_if_component_not_bind() {
+            Optional<Component> instance = context.get(Component.class);
+            assertFalse(instance.isPresent());
         }
 
         @Nested
@@ -35,7 +44,8 @@ public class ContainerTest {
             void should_bind_type_to_a_class_with_default_construction() {
                 context.bind(Component.class, ComponentImpl.class);
 
-                final Component instance = context.get(Component.class);
+                final Component instance =
+                        context.get(Component.class).get();
 
                 Assert.assertNotNull(instance);
                 Assert.assertTrue(instance instanceof ComponentImpl);
@@ -48,7 +58,8 @@ public class ContainerTest {
                 };
                 context.bind(Dependency.class, dependency);
 
-                final Component instance = context.get(Component.class);
+                final Component instance =
+                        context.get(Component.class).get();
                 Assert.assertNotNull(instance);
                 Assert.assertSame(dependency, ((ComponentWithDependency) instance).getDependency());
             }
@@ -59,7 +70,8 @@ public class ContainerTest {
                 context.bind(Dependency.class, TransitiveDependency.class);
                 context.bind(String.class, "test transitive dependency");
 
-                final Component instance = context.get(Component.class);
+                final Component instance =
+                        context.get(Component.class).get();
                 Assert.assertNotNull(instance);
                 final Dependency dependency = ((ComponentWithDependency) instance).getDependency();
                 Assert.assertNotNull(dependency);
@@ -68,12 +80,21 @@ public class ContainerTest {
 
             @Test
             void should_throw_exception_when_bind_type_a_class_with_multi_constructors() {
-                assertThrows(IllegalCopmonentException.class, () -> context.bind(Component.class, ComponentWithMultiConstructors.class));
+                assertThrows(IllegalComponentException.class,
+                        () -> context.bind(Component.class, ComponentWithMultiConstructors.class));
             }
 
             @Test
             void should_throw_exception_when_bind_type_a_class_with_no_default_constructors() {
-                assertThrows(IllegalCopmonentException.class, () -> context.bind(Component.class, ComponentWithNoDefaultConstructors.class));
+                assertThrows(IllegalComponentException.class,
+                        () -> context.bind(Component.class, ComponentWithNoDefaultConstructors.class));
+            }
+
+            @Test
+            void should_throw_exception_when_dependency_not_found() {
+                context.bind(Component.class, ComponentWithDependency.class);
+                assertThrows(DependencyNotFoundException.class,
+                        () -> context.get(Component.class));
             }
         }
 

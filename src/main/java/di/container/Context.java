@@ -1,9 +1,11 @@
 package di.container;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.stream;
@@ -22,10 +24,11 @@ public class Context {
         final Constructor<K> constructor = getConstructor(instance);
         container.put(componentClass, () -> {
             try {
-                final Object[] dependencies = stream(constructor.getParameters()).map(p -> get(p.getType()))
+                final Object[] dependencies = stream(constructor.getParameters()).map(
+                                p -> get(p.getType()).orElseThrow(DependencyNotFoundException::new))
                         .toArray();
                 return constructor.newInstance(dependencies);
-            } catch (Exception e) {
+            } catch (IllegalAccessException | IllegalArgumentException | InstantiationException | InvocationTargetException e) {
                 throw new RuntimeException(e);
             }
         });
@@ -35,19 +38,19 @@ public class Context {
         final List<Constructor<?>> constructors = stream(instance.getConstructors())
                 .filter(c -> c.isAnnotationPresent(Inject.class)).collect(Collectors.toList());
         if (constructors.size() > 1) {
-            throw new IllegalCopmonentException();
+            throw new IllegalComponentException();
         }
 
         return (Constructor<K>) constructors.stream().findFirst().orElseGet(() -> {
-                    try {
-                        return instance.getConstructor();
-                    } catch (NoSuchMethodException e) {
-                        throw new IllegalCopmonentException();
-                    }
-                });
+            try {
+                return instance.getConstructor();
+            } catch (NoSuchMethodException e) {
+                throw new IllegalComponentException();
+            }
+        });
     }
 
-    public <T> T get(Class<T> componentClass) {
-        return (T) container.get(componentClass).get();
+    public <T> Optional<T> get(Class<T> componentClass) {
+        return Optional.ofNullable(container.get(componentClass)).map(instance -> (T) instance.get());
     }
 }
