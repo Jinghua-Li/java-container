@@ -2,7 +2,9 @@ package di.container;
 
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static java.util.Arrays.stream;
 
@@ -17,18 +19,9 @@ public class Context {
     }
 
     public <T, K extends T> void bind(Class<T> componentClass, Class<K> instance) {
-        final long size = stream(instance.getConstructors())
-                .filter(c -> c.isAnnotationPresent(Inject.class)).count();
-        if (size > 1) {
-            throw new IllegalCopmonentException();
-        }
-        if (size == 0 && stream(instance.getConstructors()).filter(c -> c.getParameters().length == 0).findFirst()
-                .map(c -> false).orElse(true)) {
-            throw new IllegalCopmonentException();
-        }
+        final Constructor<K> constructor = getConstructor(instance);
         container.put(componentClass, () -> {
             try {
-                final Constructor<K> constructor = getConstructor(instance);
                 final Object[] dependencies = stream(constructor.getParameters()).map(p -> get(p.getType()))
                         .toArray();
                 return constructor.newInstance(dependencies);
@@ -39,13 +32,17 @@ public class Context {
     }
 
     private <T, K extends T> Constructor<K> getConstructor(Class<K> instance) {
-        return (Constructor<K>) stream(instance.getConstructors())
-                .filter(c -> c.isAnnotationPresent(Inject.class))
-                .findFirst().orElseGet(() -> {
+        final List<Constructor<?>> constructors = stream(instance.getConstructors())
+                .filter(c -> c.isAnnotationPresent(Inject.class)).collect(Collectors.toList());
+        if (constructors.size() > 1) {
+            throw new IllegalCopmonentException();
+        }
+
+        return (Constructor<K>) constructors.stream().findFirst().orElseGet(() -> {
                     try {
                         return instance.getConstructor();
                     } catch (NoSuchMethodException e) {
-                        throw new RuntimeException(e);
+                        throw new IllegalCopmonentException();
                     }
                 });
     }
