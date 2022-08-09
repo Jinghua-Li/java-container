@@ -1,7 +1,6 @@
 package di.container;
 
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,16 +21,7 @@ public class Context {
 
     public <T, K extends T> void bind(Class<T> componentClass, Class<K> instance) {
         final Constructor<K> constructor = getConstructor(instance);
-        container.put(componentClass, () -> {
-            try {
-                final Object[] dependencies = stream(constructor.getParameters()).map(
-                                p -> get(p.getType()).orElseThrow(DependencyNotFoundException::new))
-                        .toArray();
-                return constructor.newInstance(dependencies);
-            } catch (IllegalAccessException | IllegalArgumentException | InstantiationException | InvocationTargetException e) {
-                throw new RuntimeException(e);
-            }
-        });
+        container.put(componentClass, new ConstructorInjectionProvider<>(this, constructor));
     }
 
     private <T, K extends T> Constructor<K> getConstructor(Class<K> instance) {
