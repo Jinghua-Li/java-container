@@ -1,6 +1,8 @@
 package di.container;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -104,16 +106,28 @@ public class ContainerTest {
                 context.bind(Component.class, ComponentWithDependency.class);
                 context.bind(Dependency.class, ComponentWithCyclicDependency.class);
 
-                assertThrows(CyclicDenpendencyFound.class , ()-> context.get(Dependency.class));
+                final CyclicDependencyFound exception =
+                        assertThrows(CyclicDependencyFound.class, () -> context.get(Dependency.class));
+                final Set<Class<?>> components = exception.getComponents();
+                assertEquals(2, components.size());
+                assertTrue(components.contains(Component.class));
+                assertTrue(components.contains(Dependency.class));
             }
 
             @Test
-            void should_throw_exception_if_transitive_cyclic_dependdencies_found() {
+            void should_throw_exception_if_transitive_cyclic_dependencies_found() {
                 context.bind(Component.class, ComponentWithDependency.class);
                 context.bind(Dependency.class, AnotherDependencyOnAnotherDependency.class);
                 context.bind(AnotherDependency.class, AnotherDependencyCyclic.class);
 
-                assertThrows(CyclicDenpendencyFound.class , ()-> context.get(Dependency.class));
+                final CyclicDependencyFound exception =
+                        assertThrows(CyclicDependencyFound.class, () -> context.get(Dependency.class));
+
+                final Set<Class<?>> components = exception.getComponents();
+                assertEquals(3, components.size());
+                assertTrue(components.contains(Component.class));
+                assertTrue(components.contains(Dependency.class));
+                assertTrue(components.contains(AnotherDependency.class));
             }
         }
 

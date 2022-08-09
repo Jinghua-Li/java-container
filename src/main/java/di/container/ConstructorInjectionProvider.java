@@ -22,7 +22,7 @@ public class ConstructorInjectionProvider<T> implements Provider<T> {
     @Override
     public T get() {
         if (constructing) {
-            throw new CyclicDenpendencyFound();
+            throw new CyclicDependencyFound(component);
         }
 
         try {
@@ -32,6 +32,8 @@ public class ConstructorInjectionProvider<T> implements Provider<T> {
                                     new DependencyNotFoundException(p.getType(), component)))
                     .toArray();
             return constructor.newInstance(dependencies);
+        } catch (CyclicDependencyFound e) {
+            throw new CyclicDependencyFound(component, e);
         } catch (IllegalAccessException | IllegalArgumentException | InstantiationException | InvocationTargetException e) {
             throw new RuntimeException(e);
         } finally {
