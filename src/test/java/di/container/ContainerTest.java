@@ -2,8 +2,7 @@ package di.container;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 import jakarta.inject.Inject;
 import org.junit.Assert;
@@ -93,8 +92,11 @@ public class ContainerTest {
             @Test
             void should_throw_exception_when_dependency_not_found() {
                 context.bind(Component.class, ComponentWithDependency.class);
-                assertThrows(DependencyNotFoundException.class,
-                        () -> context.get(Component.class));
+                final DependencyNotFoundException exception =
+                        assertThrows(DependencyNotFoundException.class, () -> context.get(Component.class));
+
+                assertEquals(Dependency.class, exception.getDependency());
+                assertEquals(Component.class, exception.getComponent());
             }
 
             @Test

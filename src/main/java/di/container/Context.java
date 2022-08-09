@@ -21,7 +21,7 @@ public class Context {
 
     public <T, K extends T> void bind(Class<T> componentClass, Class<K> instance) {
         final Constructor<K> constructor = getConstructor(instance);
-        container.put(componentClass, new ConstructorInjectionProvider<>(this, constructor));
+        container.put(componentClass, new ConstructorInjectionProvider<>(this, constructor, componentClass));
     }
 
     private <T, K extends T> Constructor<K> getConstructor(Class<K> instance) {

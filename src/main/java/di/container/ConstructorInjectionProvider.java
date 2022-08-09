@@ -10,11 +10,13 @@ import jakarta.inject.Provider;
 public class ConstructorInjectionProvider<T> implements Provider<T> {
     private final Context context;
     private Constructor<T> constructor;
+    private Class<?> component;
     private boolean constructing = false;
 
-    public ConstructorInjectionProvider(Context context, Constructor<T> constructor) {
+    public ConstructorInjectionProvider(Context context, Constructor<T> constructor, Class<?> component) {
         this.context = context;
         this.constructor = constructor;
+        this.component = component;
     }
 
     @Override
@@ -26,7 +28,8 @@ public class ConstructorInjectionProvider<T> implements Provider<T> {
         try {
             constructing = true;
             final Object[] dependencies = stream(constructor.getParameters()).map(
-                            p -> context.get(p.getType()).orElseThrow(DependencyNotFoundException::new))
+                            p -> context.get(p.getType()).orElseThrow(() ->
+                                    new DependencyNotFoundException(p.getType(), component)))
                     .toArray();
             return constructor.newInstance(dependencies);
         } catch (IllegalAccessException | IllegalArgumentException | InstantiationException | InvocationTargetException e) {
