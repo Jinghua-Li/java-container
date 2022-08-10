@@ -1,6 +1,5 @@
 package di.container;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -13,11 +12,11 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 public class ContainerTest {
-    Context context;
+    ContextConfig contextConfig;
 
     @BeforeEach
     void setUp() {
-        context = new Context();
+        contextConfig = new ContextConfig();
     }
 
     @Nested
@@ -27,14 +26,15 @@ public class ContainerTest {
         void should_bind_type_to_a_specific_instance() {
             final Component instance = new Component() {
             };
-            context.bind(Component.class, instance);
+            contextConfig.bind(Component.class, instance);
 
+            final Context context = contextConfig.getContext();
             Assert.assertSame(instance, context.get(Component.class).get());
         }
 
         @Test
         void should_return_empty_if_component_not_bind() {
-            Optional<Component> instance = context.get(Component.class);
+            Optional<Component> instance = contextConfig.getContext().get(Component.class);
             assertFalse(instance.isPresent());
         }
 
@@ -43,10 +43,10 @@ public class ContainerTest {
 
             @Test
             void should_bind_type_to_a_class_with_default_construction() {
-                context.bind(Component.class, ComponentImpl.class);
+                contextConfig.bind(Component.class, ComponentImpl.class);
 
                 final Component instance =
-                        context.get(Component.class).get();
+                        contextConfig.getContext().get(Component.class).get();
 
                 Assert.assertNotNull(instance);
                 Assert.assertTrue(instance instanceof ComponentImpl);
@@ -54,25 +54,25 @@ public class ContainerTest {
 
             @Test
             void should_bind_type_to_a_class_with_inject_constructor() {
-                context.bind(Component.class, ComponentWithDependency.class);
+                contextConfig.bind(Component.class, ComponentWithDependency.class);
                 final Dependency dependency = new Dependency() {
                 };
-                context.bind(Dependency.class, dependency);
+                contextConfig.bind(Dependency.class, dependency);
 
                 final Component instance =
-                        context.get(Component.class).get();
+                        contextConfig.getContext().get(Component.class).get();
                 Assert.assertNotNull(instance);
                 Assert.assertSame(dependency, ((ComponentWithDependency) instance).getDependency());
             }
 
             @Test
             void should_bind_type_to_a_class_with_transitive_dependencies() {
-                context.bind(Component.class, ComponentWithDependency.class);
-                context.bind(Dependency.class, TransitiveDependency.class);
-                context.bind(String.class, "test transitive dependency");
+                contextConfig.bind(Component.class, ComponentWithDependency.class);
+                contextConfig.bind(Dependency.class, TransitiveDependency.class);
+                contextConfig.bind(String.class, "test transitive dependency");
 
                 final Component instance =
-                        context.get(Component.class).get();
+                        contextConfig.getContext().get(Component.class).get();
                 Assert.assertNotNull(instance);
                 final Dependency dependency = ((ComponentWithDependency) instance).getDependency();
                 Assert.assertNotNull(dependency);
@@ -82,20 +82,21 @@ public class ContainerTest {
             @Test
             void should_throw_exception_when_bind_type_a_class_with_multi_constructors() {
                 assertThrows(IllegalComponentException.class,
-                        () -> context.bind(Component.class, ComponentWithMultiConstructors.class));
+                        () -> contextConfig.bind(Component.class, ComponentWithMultiConstructors.class));
             }
 
             @Test
             void should_throw_exception_when_bind_type_a_class_with_no_default_constructors() {
                 assertThrows(IllegalComponentException.class,
-                        () -> context.bind(Component.class, ComponentWithNoDefaultConstructors.class));
+                        () -> contextConfig.bind(Component.class, ComponentWithNoDefaultConstructors.class));
             }
 
             @Test
             void should_throw_exception_when_dependency_not_found() {
-                context.bind(Component.class, ComponentWithDependency.class);
+                contextConfig.bind(Component.class, ComponentWithDependency.class);
                 final DependencyNotFoundException exception =
-                        assertThrows(DependencyNotFoundException.class, () -> context.get(Component.class));
+                        assertThrows(DependencyNotFoundException.class,
+                                () -> contextConfig.getContext().get(Component.class));
 
                 assertEquals(Dependency.class, exception.getDependency());
                 assertEquals(Component.class, exception.getComponent());
@@ -103,11 +104,12 @@ public class ContainerTest {
 
             @Test
             void should_throw_exception_when_cyclic_dependency_found() {
-                context.bind(Component.class, ComponentWithDependency.class);
-                context.bind(Dependency.class, ComponentWithCyclicDependency.class);
+                contextConfig.bind(Component.class, ComponentWithDependency.class);
+                contextConfig.bind(Dependency.class, ComponentWithCyclicDependency.class);
 
                 final CyclicDependencyFound exception =
-                        assertThrows(CyclicDependencyFound.class, () -> context.get(Dependency.class));
+                        assertThrows(CyclicDependencyFound.class,
+                                () -> contextConfig.getContext().get(Dependency.class));
                 final Set<Class<?>> components = exception.getComponents();
                 assertEquals(2, components.size());
                 assertTrue(components.contains(Component.class));
@@ -116,12 +118,13 @@ public class ContainerTest {
 
             @Test
             void should_throw_exception_if_transitive_cyclic_dependencies_found() {
-                context.bind(Component.class, ComponentWithDependency.class);
-                context.bind(Dependency.class, AnotherDependencyOnAnotherDependency.class);
-                context.bind(AnotherDependency.class, AnotherDependencyCyclic.class);
+                contextConfig.bind(Component.class, ComponentWithDependency.class);
+                contextConfig.bind(Dependency.class, AnotherDependencyOnAnotherDependency.class);
+                contextConfig.bind(AnotherDependency.class, AnotherDependencyCyclic.class);
 
                 final CyclicDependencyFound exception =
-                        assertThrows(CyclicDependencyFound.class, () -> context.get(Dependency.class));
+                        assertThrows(CyclicDependencyFound.class,
+                                () -> contextConfig.getContext().get(Dependency.class));
 
                 final Set<Class<?>> components = exception.getComponents();
                 assertEquals(3, components.size());
