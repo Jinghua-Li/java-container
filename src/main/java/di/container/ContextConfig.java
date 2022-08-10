@@ -1,10 +1,8 @@
 package di.container;
 
 import java.lang.reflect.Constructor;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.lang.reflect.Parameter;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.stream;
@@ -13,14 +11,18 @@ import jakarta.inject.Inject;
 
 public class ContextConfig {
     private final Map<Class<?>, Provider<?>> container = new HashMap<>();
+    private final Map<Class<?>, List<Class<?>>> dependencies = new HashMap<>();
 
     public <T> void bind(Class<T> componentClass, T instance) {
         container.put(componentClass, context -> instance);
+        dependencies.put(componentClass, Collections.emptyList());
     }
 
     public <T, K extends T> void bind(Class<T> componentClass, Class<K> instance) {
         final Constructor<K> constructor = getConstructor(instance);
         container.put(componentClass, new ConstructorInjectionProvider<>(constructor, componentClass));
+        dependencies.put(componentClass,
+                stream(constructor.getParameters()).map(Parameter::getType).collect(Collectors.toList()));
     }
 
     private <T, K extends T> Constructor<K> getConstructor(Class<K> instance) {
@@ -40,6 +42,12 @@ public class ContextConfig {
     }
 
     public Context getContext() {
+        dependencies.keySet().forEach(component -> dependencies.get(component).forEach(denpendency -> {
+            if (!dependencies.containsKey(denpendency)) {
+                throw new DependencyNotFoundException(denpendency, component);
+            }
+        }));
+
         return new Context() {
             @Override
             public <T> Optional<T> get(Class<T> componentClass) {
