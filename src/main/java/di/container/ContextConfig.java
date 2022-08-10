@@ -10,18 +10,17 @@ import java.util.stream.Collectors;
 import static java.util.Arrays.stream;
 
 import jakarta.inject.Inject;
-import jakarta.inject.Provider;
 
 public class ContextConfig {
     private final Map<Class<?>, Provider<?>> container = new HashMap<>();
 
     public <T> void bind(Class<T> componentClass, T instance) {
-        container.put(componentClass, () -> instance);
+        container.put(componentClass, context -> instance);
     }
 
     public <T, K extends T> void bind(Class<T> componentClass, Class<K> instance) {
         final Constructor<K> constructor = getConstructor(instance);
-        container.put(componentClass, new ConstructorInjectionProvider<>(this, constructor, componentClass));
+        container.put(componentClass, new ConstructorInjectionProvider<>(constructor, componentClass));
     }
 
     private <T, K extends T> Constructor<K> getConstructor(Class<K> instance) {
@@ -44,7 +43,7 @@ public class ContextConfig {
         return new Context() {
             @Override
             public <T> Optional<T> get(Class<T> componentClass) {
-                return Optional.ofNullable(container.get(componentClass)).map(instance -> (T) instance.get());
+                return Optional.ofNullable(container.get(componentClass)).map(instance -> (T) instance.getT(this));
             }
         };
     }

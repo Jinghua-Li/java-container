@@ -5,22 +5,18 @@ import java.lang.reflect.InvocationTargetException;
 
 import static java.util.Arrays.stream;
 
-import jakarta.inject.Provider;
-
 public class ConstructorInjectionProvider<T> implements Provider<T> {
-    private final ContextConfig context;
     private Constructor<T> constructor;
     private Class<?> component;
     private boolean constructing = false;
 
-    public ConstructorInjectionProvider(ContextConfig context, Constructor<T> constructor, Class<?> component) {
-        this.context = context;
+    public ConstructorInjectionProvider(Constructor<T> constructor, Class<?> component) {
         this.constructor = constructor;
         this.component = component;
     }
 
     @Override
-    public T get() {
+    public T getT(Context context) {
         if (constructing) {
             throw new CyclicDependencyFound(component);
         }
@@ -28,7 +24,7 @@ public class ConstructorInjectionProvider<T> implements Provider<T> {
         try {
             constructing = true;
             final Object[] dependencies = stream(constructor.getParameters()).map(
-                            p -> context.getContext().get(p.getType()).orElseThrow(() ->
+                            p -> context.get(p.getType()).orElseThrow(() ->
                                     new DependencyNotFoundException(p.getType(), component)))
                     .toArray();
             return constructor.newInstance(dependencies);
