@@ -20,7 +20,7 @@ public class ContextConfig {
 
     public <T, K extends T> void bind(Class<T> componentClass, Class<K> instance) {
         final Constructor<K> constructor = getConstructor(instance);
-        container.put(componentClass, new ConstructorInjectionProvider<>(constructor, componentClass));
+        container.put(componentClass, new ConstructorInjectionProvider<>(constructor));
         dependencies.put(componentClass,
                 stream(constructor.getParameters()).map(Parameter::getType).collect(Collectors.toList()));
     }
@@ -42,11 +42,7 @@ public class ContextConfig {
     }
 
     public Context getContext() {
-        dependencies.keySet().forEach(component -> dependencies.get(component).forEach(denpendency -> {
-            if (!dependencies.containsKey(denpendency)) {
-                throw new DependencyNotFoundException(denpendency, component);
-            }
-        }));
+        dependencies.keySet().forEach(component -> checkDependencies(component, new Stack()));
 
         return new Context() {
             @Override
@@ -54,5 +50,20 @@ public class ContextConfig {
                 return Optional.ofNullable(container.get(componentClass)).map(instance -> (T) instance.getT(this));
             }
         };
+    }
+
+    private void checkDependencies(Class<?> component, Stack<Class<?>> visiting) {
+        dependencies.get(component).forEach(dependency -> {
+            if (!dependencies.containsKey(dependency)) {
+                throw new DependencyNotFoundException(dependency, component);
+            }
+            if (visiting.contains(dependency)) {
+                throw new CyclicDependencyFound(visiting);
+            }
+
+            visiting.push(dependency);
+            checkDependencies(dependency, visiting);
+            visiting.pop();
+        });
     }
 }
