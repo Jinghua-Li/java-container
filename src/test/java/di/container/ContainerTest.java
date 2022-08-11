@@ -1,5 +1,7 @@
 package di.container;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
 
@@ -8,8 +10,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import jakarta.inject.Inject;
 import org.junit.Assert;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 public class ContainerTest {
     ContextConfig contextConfig;
@@ -134,7 +138,51 @@ public class ContainerTest {
 
         @Nested
         public class FieldInjection {
+            @Test
+            void should_inject_dependency_by_field() {
+                final Dependency dependency = new Dependency() {
+                };
+                contextConfig.bind(Dependency.class, dependency);
+                contextConfig.bind(ComponentWithFieldInjection.class, ComponentWithFieldInjection.class);
 
+                final ComponentWithFieldInjection instance =
+                        contextConfig.getContext().get(ComponentWithFieldInjection.class).get();
+
+                assertEquals(dependency, instance.getDependency());
+            }
+
+            @Test
+            void should_inject_dependency_by_parent_field() {
+                final Dependency dependency = new Dependency() {
+                };
+                contextConfig.bind(Dependency.class, dependency);
+                contextConfig.bind(SubClassWithFieldInjection.class, SubClassWithFieldInjection.class);
+
+                final ComponentWithFieldInjection instance =
+                        contextConfig.getContext().get(SubClassWithFieldInjection.class).get();
+
+                assertEquals(dependency, instance.getDependency());
+            }
+
+            @Test
+            void should_create_component_with_inject_field() {
+                final Context context = Mockito.mock(Context.class);
+                final Dependency dependency = Mockito.mock(Dependency.class);
+                Mockito.when(context.get(Mockito.eq(Dependency.class))).thenReturn(Optional.of(dependency));
+
+                ConstructorInjectionProvider<ComponentWithFieldInjection> provider =new ConstructorInjectionProvider<>(ComponentWithFieldInjection.class);
+
+                final ComponentWithFieldInjection instance = provider.getT(context);
+
+                assertEquals(dependency, instance.getDependency());
+            }
+
+            @Test
+            void should_include_field_dependency_with_injection_field() {
+                ConstructorInjectionProvider<ComponentWithFieldInjection> provider =new ConstructorInjectionProvider<>(ComponentWithFieldInjection.class);
+
+                assertArrayEquals(new Class<?>[]{Dependency.class}, provider.getDependencies().toArray());
+            }
         }
 
         @Nested
@@ -238,3 +286,14 @@ class AnotherDependencyOnAnotherDependency implements Dependency {
         this.anotherDependency = anotherDependency;
     }
 }
+
+class ComponentWithFieldInjection {
+    @Inject
+    Dependency dependency;
+
+    public Dependency getDependency() {
+        return dependency;
+    }
+}
+
+class SubClassWithFieldInjection extends ComponentWithFieldInjection {}
